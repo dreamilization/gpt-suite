@@ -14,16 +14,22 @@ class GPTMPHandler:
                  **kwargs):
         """
         Initialize the GPT Multi-Processing Handler
+
         :param api_key: OpenAI API Key as a string, defaults to environment variable OPENAI_API_KEY
         :type api_key: str(, optional)
+
         :param num_worker: Number of worker threads to use, defaults to CPU count + 4 or 32, whichever is smaller
         :type num_worker: int(, optional)
+
         :param gen_conf: Generation parameters (e.g. top_p, presence_penalty, etc.). Possible keys can be found at
          https://platform.openai.com/docs/api-reference/chat/create, defaults to gpt_util._generation_config if not set
         :type gen_conf: dict(, optional)
+
         :param max_retries: When processing batch, how many times to retry failed instances, defaults to 2
         :type max_retries: int(, optional)
+
         :param kwargs: Additional arguments to pass to OpenAI when initializing the OpenAI client
+
         :raises AssertionError: If the OpenAI API Key is not provided
         """
         # Initialize backend utility
@@ -47,8 +53,10 @@ class GPTMPHandler:
     def _dict_verifier(self, input_dict: dict) -> bool:
         """
         Verify if the input dictionary is valid for processing
+
         :param input_dict: Individual instance that will be processed when process() is called
         :type input_dict: dict
+
         :return: True if the dictionary is valid, False otherwise
         """
         # Check if all required arguments are provided
@@ -69,9 +77,11 @@ class GPTMPHandler:
         """
         Add a batch of instances to the queue, the batch will be processed when process() is called.
         Each added batch will be verified to ensure all required arguments are provided and of correct type.
+
         :param batch: A list of dictionaries, each dictionary should contain all required arguments used in
         gpt_util.generate_explanation. If not an error will be raised.
         :type batch: List[dict]
+
         :raises AssertionError: If any dictionary in the batch has missing or invalid arguments
         """
         verification_result: List[bool] = process_map(self._dict_verifier,
@@ -96,9 +106,11 @@ class GPTMPHandler:
         dictionary contains the output of gpt_util.generate_explanation for each instance in the batch. If
         rerun_on_error is set to True, the function will retry failed instances up to self.max_retries number of times.
         Any instance that failed after self.max_retries will be returned as an empty dictionary.
+
         :param rerun_on_error: If set to True, the function will retry failed instances up to self.max_retries number of
         times, defaults to False
         :type rerun_on_error: bool
+
         :return: list of dictionaries, each dictionary contains the output of gpt_util.generate_explanation for each
         instance in the batch
         :rtype: List[Dict[str, str]]
