@@ -3,6 +3,7 @@ from typing import List, Dict
 from warnings import warn
 from os import cpu_count, environ
 from . import gpt_util
+import copy
 import inspect
 
 
@@ -99,7 +100,8 @@ class GPTMPHandler:
             b.update(self.gen_conf)
             if 'max_retries' not in b['openai_args']:
                 b['openai_args']['max_retries'] = 5
-            self.queue.append(b)
+            # Add the verified dictionary to the queue with deep copy to prevent modification
+            self.queue.append(copy.deepcopy(b))
 
     def process(self, rerun_on_error: bool = False) -> List[Dict[str, str]]:
         """
