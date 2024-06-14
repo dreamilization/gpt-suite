@@ -20,6 +20,7 @@ _default_model: str = "gpt-3.5-turbo" \
     if os.environ.get('GU_DEFAULT_MODEL') is None \
     else os.environ.get('GU_DEFAULT_MODEL')
 _target_majors = [1]
+_image_special_token = "{IMAGE_PLH}"
 __version__: str = '0.3.0'
 
 
@@ -107,7 +108,38 @@ def _image_verification(image_url: str) -> bool:
     return False
 
 
-def _append_question(context: list, question: Union[str, Dict[str, List[str]]]):
+def _vision_question_verification(question: Dict[str, Union[str, List[str]]]) -> bool:
+    """
+    Verify if the dictionary provided has a valid format
+    :param question: Dictionary with 'text' and 'image' keys. 'text' is a string and 'image' is a list of strings.
+    :type question: Dict[str, Union[str, List[str]]]
+
+    :return: True if the dictionary is valid, False otherwise
+    :rtype: bool
+    """
+    # Check if the dictionary has the required keys
+    if 'text' not in question:
+        return False
+    if 'image' not in question:
+        return False
+    # Check if the 'text' key is a string
+    if not isinstance(question['text'], str):
+        return False
+    # Check if the 'image' key is a list
+    if not isinstance(question['image'], list):
+        return False
+    # Check if the 'image' list contains only strings and describe a valid image (url or base64)
+    for img in question['image']:
+        if not isinstance(img, str):
+            return False
+        if not _image_verification(img):
+            return False
+    # Check if the number of images is equal to the number of image placeholders in the text
+    text_segs = question['text'].split(_image_special_token)
+    return len(text_segs) == len(question['image']) + 1
+
+
+def _append_question(context: list, question: Union[str, Dict[str, Union[str, List[str]]]]):
     """
     Append a question to the context list
 
@@ -116,20 +148,31 @@ def _append_question(context: list, question: Union[str, Dict[str, List[str]]]):
 
     :param question: Question to append, for question with image, provide a dictionary with 'text' and 'image' keys.
         Multiple images can be provided as a list of strings under 'image' key.
-    :type question: Union[str, Dict[str, List[str]]]
+    :type question: Union[str, Dict[str, Union[str, List[str]]]]
 
     :return: None
     """
+    # For questions with images
     if isinstance(question, dict):
+        # Check if the dictionary has the required keys and format
+        # Need: 'text' and 'image' keys. 'text' is a string and 'image' is a list of strings.
+        # Number of images should be equal to the number of image placeholders in the text
+        if not _vision_question_verification(question):
+            raise ValueError("Invalid question dictionary, expected a dictionary with 'text' and 'image' keys.")
+        # Prepare the content list for the current message
         content_list = []
-        if 'text' in question:
-            content_list.append({"type": "text", "text": question['text']})
-        if 'image' in question:
-            for img in question['image']:
-                if not _image_verification(img):
-                    raise ValueError(f"Invalid image: {img[:10]}, expected a valid URL or base64 image.")
-                content_list.append({"type": "image", "image_url": {"url": img}})
+        # Split the text by the image placeholder
+        text_segs = question['text'].split(_image_special_token)
+        # Append the text and image segments to the content list
+        for i, seg in enumerate(text_segs):
+            # If text segment is not empty, append it to the content list
+            if seg:
+                content_list.append({"type": "text", "text": seg})
+            # In case if there is more text after the last image otherwise append the image
+            if i < len(question['image']):
+                content_list.append({"type": "image", "image_url": {"url": question['image'][i]}})
     else:
+        # For questions without images (text-only)
         context.append({"role": "user", "content": question})
 
 
