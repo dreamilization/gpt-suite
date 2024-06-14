@@ -21,7 +21,7 @@ _default_model: str = "gpt-3.5-turbo" \
     else os.environ.get('GU_DEFAULT_MODEL')
 _target_majors = [1]
 _image_special_token = "{IMAGE_PLH}"
-__version__: str = '0.3.0'
+__version__: str = '0.3.1'
 
 
 def _version_checker(target_majors: list) -> bool:
