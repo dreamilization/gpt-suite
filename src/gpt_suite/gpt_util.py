@@ -1,7 +1,8 @@
 import os
+import re
 from pprint import pprint
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Union, List
 from warnings import warn
 
 import openai
@@ -15,8 +16,11 @@ _generation_config = {"temperature": 0.9,
                       "frequency_penalty": 0.0,
                       "presence_penalty": 0.0}
 _client: Optional[OpenAI] = None
+_default_model: str = "gpt-3.5-turbo" \
+    if os.environ.get('GU_DEFAULT_MODEL') is None \
+    else os.environ.get('GU_DEFAULT_MODEL')
 _target_majors = [1]
-__version__: str = '0.2.2'
+__version__: str = '0.3.0'
 
 
 def _version_checker(target_majors: list) -> bool:
@@ -37,7 +41,7 @@ def _version_checker(target_majors: list) -> bool:
 
 
 def _get_response(message: list,
-                  model_name: str = "gpt-3.5-turbo",
+                  model_name: str = _default_model,
                   debug_log_path: str = None,
                   client: OpenAI = _client,
                   **kwargs) -> ChatCompletion:
@@ -46,7 +50,7 @@ def _get_response(message: list,
     :param message: List of messages in the format defined in OpenAI API
     :type message: list
 
-    :param model_name: Name for the OpenAI model to use, defaults to "gpt-3.5-turbo"
+    :param model_name: Name for the OpenAI model to use, defaults to _default_model
     :type model_name: str(, optional)
 
     :param debug_log_path: Path to save the debug log, defaults to None
@@ -85,19 +89,48 @@ def _get_response(message: list,
     return result
 
 
-def _append_question(context: list, question: str):
+def _image_verification(image_url: str) -> bool:
+    """
+    Verify if the image provided has a valid format
+    :param image_url: image in base64 format or a URL
+    :type image_url: str
+
+    :return: True if the image_url is valid, False otherwise
+    :rtype: bool
+    """
+    # Check if the image URL is a base64 encoded image
+    if image_url.startswith("data:image/jpeg;base64,"):
+        return True
+    # Check if the image URL is a valid http/https URL
+    if re.match(r'^https?://', image_url):
+        return True
+    return False
+
+
+def _append_question(context: list, question: Union[str, Dict[str, List[str]]]):
     """
     Append a question to the context list
 
     :param context: List where the question will be appended
     :type context: list
 
-    :param question: Question to append
-    :type question: str
+    :param question: Question to append, for question with image, provide a dictionary with 'text' and 'image' keys.
+        Multiple images can be provided as a list of strings under 'image' key.
+    :type question: Union[str, Dict[str, List[str]]]
 
     :return: None
     """
-    context.append({"role": "user", "content": question})
+    if isinstance(question, dict):
+        content_list = []
+        if 'text' in question:
+            content_list.append({"type": "text", "text": question['text']})
+        if 'image' in question:
+            for img in question['image']:
+                if not _image_verification(img):
+                    raise ValueError(f"Invalid image: {img[:10]}, expected a valid URL or base64 image.")
+                content_list.append({"type": "image", "image_url": {"url": img}})
+    else:
+        context.append({"role": "user", "content": question})
 
 
 def _append_response(context: list, response: str):
@@ -130,7 +163,7 @@ def _extract_raw_result(raw: ChatCompletion) -> str:
 
 def generate_explanation(init_context: str,
                          questions: list,
-                         model_name: str = "gpt-3.5-turbo",
+                         model_name: str = _default_model,
                          verbose: bool = False,
                          task_desc: str = None,
                          debug_log: str = None,
@@ -138,13 +171,13 @@ def generate_explanation(init_context: str,
                          **kwargs) -> Dict[str, str]:
     """
     Given a list of questions for a given context, generate responses for each question step by step.
-    :param init_context: Part of the first question, will be include as `initial_context` in the return dict
+    :param init_context: Part of the first question, will be included as `initial_context` in the return dict
     :type init_context: str
 
-    :param questions: List of questions to ask
-    :type questions: list
+    :param questions: List of questions to ask, each question can be a string or a dictionary with 'text' and 'image'
+    :type questions: List[Union[str, Dict[str, List[str]]]]
 
-    :param model_name: Name for the OpenAI model to use, defaults to "gpt-3.5-turbo"
+    :param model_name: Name for the OpenAI model to use, defaults to _default_model
     :type model_name: str(, optional)
 
     :param verbose: Print chat history if set to True, defaults to False
