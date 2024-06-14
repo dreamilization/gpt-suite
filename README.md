@@ -8,6 +8,10 @@
 
 This package is designed to make it easier to work with OpenAI's API by providing a set of tools that can be used to interact with the API in a more user-friendly way. It also supports multi-threading, which can be used to speed up the process of generating responses.
 
+### Future Plans
+1. We are investigating using `AsyncIO` with `openai.AsyncOpenAI` to speed up the process of generating responses. This will be implemented in a future release.
+2. We are also considering to add support for OpenAI's `Batch API` to generate multiple responses at once.
+
 ## Quick Start
 To install the package from PyPI, run the following command:
 ```bash
