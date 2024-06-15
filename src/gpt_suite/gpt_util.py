@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from pprint import pprint
 from datetime import datetime
 from typing import Optional, Dict, Union, List
@@ -86,7 +87,11 @@ def _get_response(message: list,
         # Generate output file name
         output_file_name = datetime.now().strftime(model_name + "_log_%Y_%m_%d_%H_%M_%S_%f.json")
         with open(os.path.join(debug_log_path, output_file_name), "w") as fp:
-            fp.write(result.model_dump_json(indent=2, exclude_unset=True))
+            # Dump the model to dict and add message
+            result_dict = result.model_dump(exclude_unset=True)
+            result_dict['message'] = message
+            # Write the result to the file
+            fp.write(json.dumps(result_dict, indent=2))
     return result
 
 
