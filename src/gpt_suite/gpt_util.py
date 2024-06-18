@@ -209,18 +209,16 @@ def _extract_raw_result(raw: ChatCompletion) -> str:
     return raw.choices[0].message.content.strip()
 
 
-def generate_explanation(init_context: str,
-                         questions: list,
+def generate_explanation(questions: list,
                          model_name: str = _default_model,
                          verbose: bool = False,
                          task_desc: str = None,
                          debug_log: str = None,
                          client: OpenAI = _client,
+                         init_context: str = None,
                          **kwargs) -> Dict[str, str]:
     """
     Given a list of questions for a given context, generate responses for each question step by step.
-    :param init_context: Part of the first question, will be included as `initial_context` in the return dict
-    :type init_context: str
 
     :param questions: List of questions to ask, each question can be a string or a dictionary with 'text' and 'image'
     :type questions: List[Union[str, Dict[str, List[str]]]]
@@ -240,6 +238,10 @@ def generate_explanation(init_context: str,
     :param client: OpenAI client object, defaults to `_client` if not provided
     :type client: OpenAI(, optional)
 
+    :param init_context: Part of the first question, will be included as `initial_context` in the return dict. Will be
+    deprecated in version 0.4.0, defaults to None
+    :type init_context: str(, optional)
+
     :param kwargs: Generation parameters (e.g. top_p, presence_penalty, etc.). Possible keys can be found at
         https://platform.openai.com/docs/api-reference/chat/create, defaults to _generation_config if not set
     :type kwargs: dict(, optional)
@@ -248,42 +250,51 @@ def generate_explanation(init_context: str,
         question.
     :rtype: dict
     """
-    # Check is the utility is properly setup
+    # Check if the utility is properly setup
     assert client is not None, "need to run init() first or provide client."
 
     # Create list to hold chat histories
     context = list()
 
+    # Create return dict object
+    output_dict = dict()
+
     # Add system prompt if provided
     if task_desc is not None:
         context.append({"role": "system", "content": task_desc})
 
-    # Prepare the list for the first question
-    _append_question(context, '\n\n'.join([init_context, questions[0]]).strip())
-
-    # Create return dict object and record initial context
-    output_dict = dict()
-    output_dict['initial_context'] = init_context
-
-    # Query the first question and append to the history and return dict
-    curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
-    _append_response(context, curr_response)
-    # Record the response to the first question; if the first question is a dictionary, record the text part
-    if isinstance(questions[0], dict):
-        output_dict[questions[0]['text']] = curr_response
-    else:
-        output_dict[questions[0]] = curr_response
-
-    # Loop through the rest questions
-    for q in questions[1:]:
-        _append_question(context, q)
-        curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
-        # Record the response to the question; if the question is a dictionary, record the text part
-        if isinstance(q, dict):
-            output_dict[q['text']] = curr_response
+    # Add the initial context to the first question if provided
+    if init_context:
+        warn("arg: init_context will be deprecated in version 0.4, please put the initial context in the first"
+             "item of the questions list.", DeprecationWarning)
+        if isinstance(questions[0], dict):
+            questions[0]['text'] = '\n\n'.join([init_context, questions[0]['text']]).strip()
         else:
-            output_dict[q] = curr_response
+            questions[0] = '\n\n'.join([init_context, questions[0]]).strip()
+        output_dict['initial_context'] = init_context
+
+    # Loop through the questions
+    for q_id, q in enumerate(questions):
+        # Add the question to the context
+        _append_question(context, q)
+        # Get the response from OpenAI
+        curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
+        # Append the response to the context
         _append_response(context, curr_response)
+
+        # Record response to the question in output_dict; if the question involves vision, record the text part only
+        # If the question is the first question and init_context is provided, remove the init_context from the question
+        if isinstance(q, dict):
+            # TODO: Add support to include the image part of the question
+            if q_id == 0 and init_context is not None:
+                output_dict[q['text'].replace(init_context, '').strip()] = curr_response
+            else:
+                output_dict[q['text']] = curr_response
+        else:
+            if q_id == 0 and init_context is not None:
+                output_dict[q.replace(init_context, '').strip()] = curr_response
+            else:
+                output_dict[q] = curr_response
 
     # If verbose was set, print the entire chat history
     if verbose:
