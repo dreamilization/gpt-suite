@@ -176,6 +176,8 @@ def _append_question(context: list, question: Union[str, Dict[str, Union[str, Li
             # In case if there is more text after the last image otherwise append the image
             if i < len(question['image']):
                 content_list.append({"type": "image", "image_url": {"url": question['image'][i]}})
+        # Add the processed question to the context list
+        context.append({"role": "user", "content": content_list})
     else:
         # For questions without images (text-only)
         context.append({"role": "user", "content": question})
