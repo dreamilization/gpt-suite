@@ -268,13 +268,21 @@ def generate_explanation(init_context: str,
     # Query the first question and append to the history and return dict
     curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
     _append_response(context, curr_response)
-    output_dict[questions[0]] = curr_response
+    # Record the response to the first question; if the first question is a dictionary, record the text part
+    if isinstance(questions[0], dict):
+        output_dict[questions[0]['text']] = curr_response
+    else:
+        output_dict[questions[0]] = curr_response
 
     # Loop through the rest questions
     for q in questions[1:]:
         _append_question(context, q)
         curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
-        output_dict[q] = curr_response
+        # Record the response to the question; if the question is a dictionary, record the text part
+        if isinstance(q, dict):
+            output_dict[q['text']] = curr_response
+        else:
+            output_dict[q] = curr_response
         _append_response(context, curr_response)
 
     # If verbose was set, print the entire chat history
