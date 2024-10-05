@@ -319,13 +319,16 @@ def generate_explanation_wrapper(arg_dict: dict) -> Dict[str, str]:
     :rtype: dict
     """
     # Initialize OpenAI Object
+    _logger.info("Initializing OpenAI client for multiprocessing")
     client = OpenAI(**arg_dict['openai_args'])
     del arg_dict['openai_args']
     arg_dict['client'] = client
     try:
+        _logger.info("Calling generate_explanation for multiprocessing")
         return generate_explanation(**arg_dict)
     except Exception as e:
-        print(e)
+        _logger.error(f"Error in generate_explanation: {e}")
+        _logger.error("Returning empty dictionary")
         return dict()
 
 
