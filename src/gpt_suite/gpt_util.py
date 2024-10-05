@@ -346,16 +346,20 @@ def init(api_key: str, gen_conf: dict = None, **kwargs):
     global _generation_config
     global _client
 
+    _logger.info("Initializing GPT-Suite")
     # Check version compatibility
     assert _version_checker(_target_majors), \
         f"openai({openai.__version__}) is no longer supported, please upgrade first."
     # Initialize OpenAI Object
     if not kwargs:
+        _logger.info("Initializing OpenAI client with default arguments (max_retries=5)")
         _client = OpenAI(api_key=api_key, max_retries=5)
     else:
+        _logger.info("Initializing OpenAI client with custom arguments")
         _client = OpenAI(api_key=api_key, **kwargs)
     # Override configuration files if needed
     if gen_conf:
         for k in list(gen_conf.keys()):
             if k in _generation_config:
+                _logger.info(f"Overriding generation configuration: {k}={gen_conf[k]}")
                 _generation_config[k] = gen_conf[k]
