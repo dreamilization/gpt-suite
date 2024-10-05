@@ -126,24 +126,33 @@ def _vision_question_verification(question: Dict[str, Union[str, List[str]]]) ->
     """
     # Check if the dictionary has the required keys
     if 'text' not in question:
+        _logger.debug("`text` key not found in dictionary")
         return False
     if 'image' not in question:
+        _logger.debug("`image` key not found in dictionary")
         return False
     # Check if the 'text' key is a string
     if not isinstance(question['text'], str):
+        _logger.debug("Value for `text` is not a string")
         return False
     # Check if the 'image' key is a list
     if not isinstance(question['image'], list):
+        _logger.debug("Value for `image` is not a list")
         return False
     # Check if the 'image' list contains only strings and describe a valid image (url or base64)
     for img in question['image']:
         if not isinstance(img, str):
+            _logger.debug("Value in `image` list is not a string")
             return False
         if not _image_verification(img):
+            _logger.debug("Value in `image` list is not a valid image (url or base64)")
             return False
     # Check if the number of images is equal to the number of image placeholders in the text
     text_segs = question['text'].split(_image_special_token)
-    return len(text_segs) == len(question['image']) + 1
+    if not len(text_segs) == len(question['image']) + 1:
+        _logger.debug("Number of images does not match the number of image placeholders in the text")
+        return False
+    return True
 
 
 def _append_question(context: list, question: Union[str, Dict[str, Union[str, List[str]]]]):
