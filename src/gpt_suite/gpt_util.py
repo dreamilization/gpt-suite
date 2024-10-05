@@ -265,12 +265,14 @@ def generate_explanation(questions: list,
 
     # Add system prompt if provided
     if task_desc is not None:
+        _logger.debug(f"Adding system prompt: {task_desc}")
         context.append({"role": "system", "content": task_desc})
 
     # Add the initial context to the first question if provided
     if init_context:
         warn("arg: init_context will be deprecated in version 0.4, please put the initial context in the first"
              "item of the questions list.", DeprecationWarning)
+        _logger.debug(f"Prepend initial context to the first question")
         if isinstance(questions[0], dict):
             questions[0]['text'] = '\n\n'.join([init_context, questions[0]['text']]).strip()
         else:
@@ -279,6 +281,7 @@ def generate_explanation(questions: list,
 
     # Loop through the questions
     for q_id, q in enumerate(questions):
+        _logger.debug("Prepare prompt and get response")
         # Add the question to the context
         _append_question(context, q)
         # Get the response from OpenAI
@@ -288,6 +291,7 @@ def generate_explanation(questions: list,
 
         # Record response to the question in output_dict; if the question involves vision, record the text part only
         # If the question is the first question and init_context is provided, remove the init_context from the question
+        _logger.debug("Saving response to output_dict")
         if isinstance(q, dict):
             # TODO: Add support to include the image part of the question
             if q_id == 0 and init_context is not None:
