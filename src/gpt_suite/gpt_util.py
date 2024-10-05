@@ -25,6 +25,7 @@ _target_majors = [1]
 _image_special_token = "{IMAGE_PLH}"
 _logger = logging.getLogger(__name__)
 
+
 def _version_checker(target_majors: list) -> bool:
     """
     Check if the current version of OpenAI is compatible with the target major versions
@@ -38,6 +39,7 @@ def _version_checker(target_majors: list) -> bool:
     # Check if compatible with openai package
     major = int(openai.__version__.split('.')[0])
     if major not in target_majors:
+        _logger.warning(f"OpenAI({major}.x) has not been tested on this version yet. Please use with caution.")
         warn(f"OpenAI({major}.x) has not been tested on this version yet. Please use with caution.")
     return int(major) >= minimal_version
 
