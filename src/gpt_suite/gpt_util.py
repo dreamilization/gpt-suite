@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import logging
 from pprint import pprint
 from datetime import datetime
 from typing import Optional, Dict, Union, List
@@ -22,7 +23,7 @@ _default_model: str = "gpt-3.5-turbo" \
     else os.environ.get('GU_DEFAULT_MODEL')
 _target_majors = [1]
 _image_special_token = "{IMAGE_PLH}"
-
+_logger = logging.getLogger(__name__)
 
 def _version_checker(target_majors: list) -> bool:
     """

@@ -5,7 +5,9 @@ from os import cpu_count, environ
 from . import gpt_util
 import copy
 import inspect
+import logging
 
+_logger = logging.getLogger(__name__)
 
 class GPTMPHandler:
     def __init__(self, api_key: str = environ.get('OPENAI_API_KEY'),
