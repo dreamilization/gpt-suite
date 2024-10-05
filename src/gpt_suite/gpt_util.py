@@ -283,7 +283,7 @@ def generate_explanation(questions: list,
     if init_context:
         warn("arg: init_context will be deprecated in version 0.4, please put the initial context in the first"
              "item of the questions list.", DeprecationWarning)
-        _logger.debug(f"Prepend initial context to the first question")
+        _logger.info(f"Prepend initial context to the first question")
         if isinstance(questions[0], dict):
             questions[0]['text'] = '\n\n'.join([init_context, questions[0]['text']]).strip()
         else:
@@ -297,7 +297,7 @@ def generate_explanation(questions: list,
         _append_question(context, q)
         _logger.debug(f"Context: {context}")
         # Get the response from OpenAI
-        _logger.debug("Getting response from OpenAI")
+        _logger.info("Getting response from OpenAI")
         curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
         # Append the response to the context
         _logger.debug(f"Appending response: {curr_response}")
@@ -337,12 +337,12 @@ def generate_explanation_wrapper(arg_dict: dict) -> Dict[str, str]:
     :rtype: dict
     """
     # Initialize OpenAI Object
-    _logger.info("Initializing OpenAI client for multiprocessing")
+    _logger.debug("Initializing OpenAI client for multiprocessing")
     client = OpenAI(**arg_dict['openai_args'])
     del arg_dict['openai_args']
     arg_dict['client'] = client
     try:
-        _logger.info("Calling generate_explanation for multiprocessing")
+        _logger.debug("Calling generate_explanation for multiprocessing")
         return generate_explanation(**arg_dict)
     except Exception as e:
         _logger.error(f"Error in generate_explanation: {e}")
