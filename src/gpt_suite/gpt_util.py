@@ -197,6 +197,7 @@ def _append_response(context: list, response: str):
 
     :return: None
     """
+    _logger.debug(f"Appending response to context")
     context.append({"role": "assistant", "content": response})
 
 
@@ -210,6 +211,7 @@ def _extract_raw_result(raw: ChatCompletion) -> str:
     :return: Extracted response from the ChatCompletion object
     :rtype: str
     """
+    _logger.debug(f"Extracting response from ChatCompletion object")
     return raw.choices[0].message.content.strip()
 
 
