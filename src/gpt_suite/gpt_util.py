@@ -281,12 +281,15 @@ def generate_explanation(questions: list,
 
     # Loop through the questions
     for q_id, q in enumerate(questions):
-        _logger.debug("Prepare prompt and get response")
+        _logger.debug(f"Appending question: {q}")
         # Add the question to the context
         _append_question(context, q)
+        _logger.debug(f"Context: {context}")
         # Get the response from OpenAI
+        _logger.debug("Getting response from OpenAI")
         curr_response = _extract_raw_result(_get_response(context, model_name, debug_log, client, **kwargs))
         # Append the response to the context
+        _logger.debug(f"Appending response: {curr_response}")
         _append_response(context, curr_response)
 
         # Record response to the question in output_dict; if the question involves vision, record the text part only
