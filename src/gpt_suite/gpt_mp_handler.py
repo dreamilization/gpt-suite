@@ -9,6 +9,7 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+
 class GPTMPHandler:
     def __init__(self, api_key: str = environ.get('OPENAI_API_KEY'),
                  num_worker: int = min(32, cpu_count() + 4),
@@ -66,14 +67,14 @@ class GPTMPHandler:
         # Check if all required arguments are provided
         for k in self.func_required_arg_list:
             if k not in input_dict:
-                warn(f"Invalid dictionary, key {k} is required")
+                _logger.error(f"Invalid dictionary, key {k} is required")
                 return False
         # Check if argument types
         for k, v in input_dict.items():
             if k not in self.func_args:
                 continue
             if not isinstance(v, self.func_args[k]):
-                warn(f"Invalid dictionary, item {k} is not of type {self.func_args[k]}")
+                _logger.error(f"Invalid dictionary, item {k} is not of type {self.func_args[k]}")
                 return False
         return True
 
@@ -96,6 +97,7 @@ class GPTMPHandler:
         assert False not in verification_result, f"Verification failed"
         for b in batch:
             # Adding additional required arguments for multi-threading
+            _logger.debug(f"Adding additional arguments to each dictionary")
             b['openai_args'] = dict()
             b['openai_args']['api_key'] = self.api_key
             b['openai_args'].update(self.openai_args)
@@ -122,10 +124,12 @@ class GPTMPHandler:
         :rtype: List[Dict[str, str]]
         """
         # copy the queue to a local variable and clear the public facing queue
+        _logger.debug(f"Copying the queue and clearing the public facing queue")
         queue = self.queue[:]
         self.queue = []
         # get the results with multi-threading
         # note: func process_map() ensures the output is in the original order
+        _logger.info(f"Processing batch of {len(queue)} instances")
         results: List[Dict[str, str]] = process_map(gpt_util.generate_explanation_wrapper,
                                                     queue,
                                                     max_workers=min(len(queue), self.num_worker),
@@ -141,11 +145,13 @@ class GPTMPHandler:
                 failed_indexes.append(queue_index)
         # if not rerun on error or no error, simply return the results
         if not rerun_on_error or len(failed_indexes) == 0:
+            _logger.info(f"Processing completed, returning results")
             return results
+        _logger.warning(f"Processing failed for {len(failed_indexes)} instances, retrying")
         # try self.max_retries number of time for failed examples
         for _ in range(self.max_retries):
             # sanity check to ensure each queue item have a corresponding index mapping
-            assert len(self.queue) == len(failed_indexes)
+            assert len(self.queue) == len(failed_indexes), "Queue and failed indexes length mismatch, aborting retry"
             # re-run the failed examples
             retied_results: List[Dict[str, str]] = self.process(rerun_on_error=False)
             # go through all retried examples and add success ones back to results
