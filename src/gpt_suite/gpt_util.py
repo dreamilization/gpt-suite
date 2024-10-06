@@ -77,13 +77,16 @@ def _get_response(message: list,
     for k in _generation_config:
         args[k] = kwargs[k] if k in kwargs else _generation_config[k]
     # Get response from OpenAI
+    _logger.debug(f"Getting response from OpenAI for model: {model_name}")
     result = client.chat.completions.create(
         model=model_name,
         messages=message,
         **args
     )
+    _logger.debug(f"Response received from OpenAI")
     # Save output if debug path was given
     if debug_log_path is not None:
+        _logger.debug(f"Saving raw output to: {debug_log_path}")
         # Create if the directory does not exist
         os.makedirs(debug_log_path, exist_ok=True)
         # Generate output file name
@@ -169,6 +172,7 @@ def _append_question(context: list, question: Union[str, Dict[str, Union[str, Li
     :return: None
     """
     # For questions with images
+    _logger.debug(f"Appending question to context dictionary")
     if isinstance(question, dict):
         # Check if the dictionary has the required keys and format
         # Need: 'text' and 'image' keys. 'text' is a string and 'image' is a list of strings.
